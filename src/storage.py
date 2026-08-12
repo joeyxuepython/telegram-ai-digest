@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +21,10 @@ CREATE TABLE IF NOT EXISTS digests (
 );
 CREATE INDEX IF NOT EXISTS idx_digests_chat ON digests(chat_id);
 CREATE INDEX IF NOT EXISTS idx_digests_date ON digests(generated_at);
+CREATE TABLE IF NOT EXISTS chat_state (
+    chat_id INTEGER PRIMARY KEY,
+    last_message_id INTEGER NOT NULL
+);
 """
 
 
@@ -40,26 +42,55 @@ class Storage:
 
     def save(self, digests: list[dict]) -> None:
         with sqlite3.connect(str(self.db_path)) as conn:
-            for d in digests:
-                conn.execute(
-                    """INSERT INTO digests
-                       (chat_id, title, content, message_count, participant_count, generated_at)
-                       VALUES (?, ?, ?, ?, ?, ?)""",
-                    (
-                        d["chat_id"],
-                        d["title"],
-                        d["content"],
-                        d.get("message_count", 0),
-                        d.get("participant_count", 0),
-                        d["generated_at"].isoformat() if isinstance(d["generated_at"], datetime) else d["generated_at"],
-                    ),
-                )
+            self._save_digests(conn, digests)
         logger.info("Saved %d digests to %s", len(digests), self.db_path)
 
-    def list(self, chat_id: Optional[int] = None, limit: int = 20) -> list[dict]:
+    def save_with_cursors(self, digests: list[dict], cursors: dict[int, int]) -> None:
+        """Atomically persist generated digests and their processed message cursors."""
+        with sqlite3.connect(str(self.db_path)) as conn:
+            self._save_digests(conn, digests)
+            for chat_id, last_message_id in cursors.items():
+                conn.execute(
+                    """INSERT INTO chat_state (chat_id, last_message_id) VALUES (?, ?)
+                       ON CONFLICT(chat_id) DO UPDATE SET last_message_id = excluded.last_message_id""",
+                    (chat_id, last_message_id),
+                )
+        logger.info("Saved %d digests and %d chat cursors", len(digests), len(cursors))
+
+    @staticmethod
+    def _save_digests(conn: sqlite3.Connection, digests: list[dict]) -> None:
+        for d in digests:
+            conn.execute(
+                """INSERT INTO digests
+                   (chat_id, title, content, message_count, participant_count, generated_at)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (
+                    d["chat_id"],
+                    d["title"],
+                    d["content"],
+                    d.get("message_count", 0),
+                    d.get("participant_count", 0),
+                    d["generated_at"].isoformat()
+                    if isinstance(d["generated_at"], datetime)
+                    else d["generated_at"],
+                ),
+            )
+
+    def get_last_message_ids(self, chat_ids: list[int]) -> dict[int, int]:
+        if not chat_ids:
+            return {}
+        placeholders = ",".join("?" for _ in chat_ids)
+        with sqlite3.connect(str(self.db_path)) as conn:
+            rows = conn.execute(
+                f"SELECT chat_id, last_message_id FROM chat_state WHERE chat_id IN ({placeholders})",
+                chat_ids,
+            ).fetchall()
+        return {int(chat_id): int(message_id) for chat_id, message_id in rows}
+
+    def list(self, chat_id: int | None = None, limit: int = 20) -> list[dict]:
         with sqlite3.connect(str(self.db_path)) as conn:
             conn.row_factory = sqlite3.Row
-            if chat_id:
+            if chat_id is not None:
                 rows = conn.execute(
                     "SELECT * FROM digests WHERE chat_id = ? ORDER BY generated_at DESC LIMIT ?",
                     (chat_id, limit),
