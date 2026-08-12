@@ -36,16 +36,22 @@ async def fetch_messages(
             entity = await tc.get_entity(chat_id)
             messages: list[dict] = []
             async for msg in tc.iter_messages(
-                entity, limit=MAX_MESSAGES_PER_GROUP, offset_date=since, reverse=True,
+                entity,
+                limit=MAX_MESSAGES_PER_GROUP,
             ):
+                if msg.date < since:
+                    break
                 if isinstance(msg, Message) and msg.message:
-                    messages.append({
-                        "id": msg.id,
-                        "text": msg.message,
-                        "sender": _sender_name(msg),
-                        "date": msg.date,
-                    })
+                    messages.append(
+                        {
+                            "id": msg.id,
+                            "text": msg.message,
+                            "sender": _sender_name(msg),
+                            "date": msg.date,
+                        }
+                    )
             if messages:
+                messages.reverse()
                 result[chat_id] = messages
                 logger.info("Fetched %d messages from %s", len(messages), chat_id)
         except Exception as exc:

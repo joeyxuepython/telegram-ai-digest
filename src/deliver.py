@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Optional
 
 import httpx
 
@@ -13,7 +12,7 @@ from .config import Config, get_config
 logger = logging.getLogger(__name__)
 
 
-def deliver(digests: list[dict], cfg: Optional[Config] = None) -> None:
+def deliver(digests: list[dict], cfg: Config | None = None) -> None:
     """Deliver digests through configured channels."""
     cfg = cfg or get_config()
     if not digests:
@@ -41,6 +40,7 @@ def _deliver_console(digests: list[dict]) -> None:
 
 async def _deliver_telegram(digests: list[dict], cfg: Config) -> None:
     from .client import Client
+
     client = Client(cfg)
     tc = await client.connect()
     me = await tc.get_me()

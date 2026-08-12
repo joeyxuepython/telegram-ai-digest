@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -51,15 +49,17 @@ class Storage:
                         d["content"],
                         d.get("message_count", 0),
                         d.get("participant_count", 0),
-                        d["generated_at"].isoformat() if isinstance(d["generated_at"], datetime) else d["generated_at"],
+                        d["generated_at"].isoformat()
+                        if isinstance(d["generated_at"], datetime)
+                        else d["generated_at"],
                     ),
                 )
         logger.info("Saved %d digests to %s", len(digests), self.db_path)
 
-    def list(self, chat_id: Optional[int] = None, limit: int = 20) -> list[dict]:
+    def list(self, chat_id: int | None = None, limit: int = 20) -> list[dict]:
         with sqlite3.connect(str(self.db_path)) as conn:
             conn.row_factory = sqlite3.Row
-            if chat_id:
+            if chat_id is not None:
                 rows = conn.execute(
                     "SELECT * FROM digests WHERE chat_id = ? ORDER BY generated_at DESC LIMIT ?",
                     (chat_id, limit),

@@ -4,10 +4,8 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Optional
 
 from telethon import TelegramClient
-from telethon.sessions import StringSession
 
 from .config import Config, get_config
 
@@ -17,9 +15,9 @@ logger = logging.getLogger(__name__)
 class Client:
     """Thin wrapper around Telethon for message fetching."""
 
-    def __init__(self, cfg: Optional[Config] = None) -> None:
+    def __init__(self, cfg: Config | None = None) -> None:
         self.cfg = cfg or get_config()
-        self._client: Optional[TelegramClient] = None
+        self._client: TelegramClient | None = None
 
     async def connect(self) -> TelegramClient:
         if self._client and self._client.is_connected():

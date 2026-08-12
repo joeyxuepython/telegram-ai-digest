@@ -41,7 +41,9 @@ def build_prompt(group_name: str, language: str, messages: list[dict]) -> str:
     """Build the user prompt for summarization."""
     lines = [f"Group: {group_name}\n"]
     for m in messages:
-        time_str = m["date"].strftime("%H:%M") if isinstance(m["date"], datetime) else str(m["date"])
+        time_str = (
+            m["date"].strftime("%H:%M") if isinstance(m["date"], datetime) else str(m["date"])
+        )
         lines.append(f"[{time_str}] {m['sender']}: {m['text']}")
     return "\n".join(lines)
 
@@ -54,7 +56,12 @@ def summarize(
 
     Returns: [{"chat_id": int, "title": str, "content": str, "message_count": int, "participant_count": int}]
     """
+    if not messages_by_chat:
+        return []
+
     cfg = cfg or get_config()
+    if not cfg.ai.api_key:
+        raise ValueError("OPENAI_API_KEY is required to generate a digest.")
     client = OpenAI(api_key=cfg.ai.api_key, base_url=cfg.ai.base_url or None)
     results: list[dict] = []
 
@@ -78,14 +85,16 @@ def summarize(
                 temperature=cfg.ai.temperature,
             )
             content = response.choices[0].message.content or ""
-            results.append({
-                "chat_id": chat_id,
-                "title": f"Chat {chat_id}",
-                "content": content,
-                "message_count": len(msgs),
-                "participant_count": participants,
-                "generated_at": datetime.now(timezone.utc),
-            })
+            results.append(
+                {
+                    "chat_id": chat_id,
+                    "title": f"Chat {chat_id}",
+                    "content": content,
+                    "message_count": len(msgs),
+                    "participant_count": participants,
+                    "generated_at": datetime.now(timezone.utc),
+                }
+            )
             logger.info("Summarized %d messages from chat %s", len(msgs), chat_id)
         except Exception as exc:
             logger.error("Summarization failed for chat %s: %s", chat_id, exc)

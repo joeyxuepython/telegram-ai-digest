@@ -4,18 +4,16 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import sys
-from pathlib import Path
+import time as _time
 
 import click
 import schedule
-import time as _time
 
-from .config import Config, get_config
-from .fetcher import fetch_messages
-from .summarizer import summarize
+from .config import Config, set_config
 from .deliver import deliver
+from .fetcher import fetch_messages
 from .storage import Storage
+from .summarizer import summarize
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("tad")
@@ -27,9 +25,7 @@ logger = logging.getLogger("tad")
 def cli(ctx: click.Context, config: str) -> None:
     """Telegram AI Digest — AI-powered group chat summaries."""
     cfg = Config.from_yaml(config)
-    # Store in module-level singleton
-    import src.config as _cfg
-    _cfg.config = cfg
+    set_config(cfg)
     ctx.ensure_object(dict)
     ctx.obj["cfg"] = cfg
 
@@ -40,6 +36,10 @@ def cli(ctx: click.Context, config: str) -> None:
 def run(ctx: click.Context, hours: int) -> None:
     """Fetch messages and generate digests once."""
     cfg: Config = ctx.obj["cfg"]
+    try:
+        cfg.validate_for_digest()
+    except ValueError as exc:
+        raise click.UsageError(str(exc)) from exc
     logger.info("Fetching messages from %d groups...", len(cfg.groups))
 
     async def _run():
@@ -65,6 +65,10 @@ def run(ctx: click.Context, hours: int) -> None:
 def watch(ctx: click.Context, interval: int) -> None:
     """Run continuously on a schedule."""
     cfg: Config = ctx.obj["cfg"]
+    try:
+        cfg.validate_for_digest()
+    except ValueError as exc:
+        raise click.UsageError(str(exc)) from exc
     logger.info("Starting scheduler: every %d minutes", interval)
 
     def job():
@@ -76,6 +80,7 @@ def watch(ctx: click.Context, interval: int) -> None:
                     store = Storage(cfg.db_path)
                     store.save(digests)
                     deliver(digests, cfg)
+
         asyncio.run(_run())
 
     schedule.every(interval).minutes.do(job)
@@ -93,6 +98,7 @@ def web(ctx: click.Context) -> None:
     """Start the web dashboard."""
     cfg: Config = ctx.obj["cfg"]
     from .web import main as web_main
+
     logger.info("Starting web dashboard at http://%s:%d", cfg.server.host, cfg.server.port)
     web_main()
 

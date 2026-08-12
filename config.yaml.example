@@ -5,8 +5,10 @@
 # ==============================================
 
 telegram:
-  api_id: "YOUR_API_ID"              # https://my.telegram.org/apps
-  api_hash: "YOUR_API_HASH"          # https://my.telegram.org/apps
+  # Prefer TELEGRAM_API_ID and TELEGRAM_API_HASH environment variables.
+  # Do not put real credentials in this file.
+  api_id: 0
+  api_hash: ""
 
 groups:
   # Chat IDs to monitor (find via @username_to_id_bot)
@@ -14,10 +16,11 @@ groups:
   - -1009876543210
 
 ai:
-  provider: "openai"                 # openai | anthropic | local
-  model: "gpt-4o-mini"              # gpt-4o-mini is cheap and fast
-  api_key: "YOUR_OPENAI_API_KEY"    # https://platform.openai.com/api-keys
-  base_url: ""                       # optional: custom endpoint / proxy
+  provider: "openai"
+  model: "gpt-4o-mini"
+  # Set OPENAI_API_KEY in the environment. Never commit a key here.
+  api_key: ""
+  base_url: ""
   max_tokens: 2000
   temperature: 0.3
 
@@ -31,7 +34,7 @@ output:
     - "console"                      # print to stdout
     # - "telegram"                   # send to your Saved Messages
     # - "webhook"                    # POST to a URL
-  # webhook_url: "https://hooks.slack.com/..."
+  # webhook_url: "https://example.com/webhooks/digest"
   language: "zh"                     # en | zh | auto
 
 storage:
