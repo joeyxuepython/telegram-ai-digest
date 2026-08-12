@@ -1,0 +1,42 @@
+# ==============================================
+# Telegram AI Digest — Configuration Template
+# Copy to config.yaml and fill in your values.
+# cp config.yaml.example config.yaml
+# ==============================================
+
+telegram:
+  api_id: "YOUR_API_ID"              # https://my.telegram.org/apps
+  api_hash: "YOUR_API_HASH"          # https://my.telegram.org/apps
+
+groups:
+  # Chat IDs to monitor (find via @username_to_id_bot)
+  - -1001234567890
+  - -1009876543210
+
+ai:
+  provider: "openai"                 # openai | anthropic | local
+  model: "gpt-4o-mini"              # gpt-4o-mini is cheap and fast
+  api_key: "YOUR_OPENAI_API_KEY"    # https://platform.openai.com/api-keys
+  base_url: ""                       # optional: custom endpoint / proxy
+  max_tokens: 2000
+  temperature: 0.3
+
+schedule:
+  mode: "daily"                      # hourly | daily | weekly
+  time: "20:00"                      # HH:MM (for daily/weekly)
+  day: "monday"                      # for weekly mode
+
+output:
+  channels:
+    - "console"                      # print to stdout
+    # - "telegram"                   # send to your Saved Messages
+    # - "webhook"                    # POST to a URL
+  # webhook_url: "https://hooks.slack.com/..."
+  language: "zh"                     # en | zh | auto
+
+storage:
+  db_path: "./data/digests.db"       # SQLite database
+
+server:
+  host: "127.0.0.1"
+  port: 8080
