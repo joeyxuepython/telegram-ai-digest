@@ -51,6 +51,7 @@ def main():
     import uvicorn
 
     cfg = get_config()
+    cfg.validate_for_web()
     uvicorn.run(app, host=cfg.server.host, port=cfg.server.port, log_level="info")
 
 

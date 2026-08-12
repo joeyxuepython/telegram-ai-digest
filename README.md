@@ -15,6 +15,9 @@ OpenAI credentials. Every deployment uses credentials owned by its operator.
 
 - Fetches recent messages from configured Telegram chats.
 - Generates one digest per chat, grouped by discussion topic.
+- Cites source message IDs and treats chat text as untrusted input.
+- Tracks processed message IDs locally so recurring runs do not repeat digests.
+- Splits large inputs into bounded API requests without splitting messages.
 - Sends digests to the terminal, Telegram Saved Messages, or a webhook.
 - Stores local history and provides a small optional web viewer.
 
@@ -27,6 +30,10 @@ and authorized basis to process and send messages to that provider. Review
 
 Never commit `config.yaml`, `.env*`, Telegram session files, SQLite databases,
 or API keys. The repository ignores these paths by default.
+
+The web viewer has no built-in authentication and binds to loopback by default.
+Remote binding is refused unless `server.allow_remote` is explicitly enabled;
+only do that behind access controls you operate and trust.
 
 ## Quick start
 
@@ -53,13 +60,15 @@ tad run
 ```
 
 The first Telegram connection may ask for your account's login code. It creates
-a local session under `data/`, which remains untracked.
+a local session under `data/`, restricts it to the current OS user when the
+platform permits, and leaves it untracked.
 
 ### Commands
 
 ```bash
 tad run --hours 24          # generate one digest per configured chat
-tad watch --interval 60     # repeat every 60 minutes
+tad watch                   # use hourly/daily/weekly schedule from config.yaml
+tad watch --interval 60     # override with a fixed 60-minute interval
 tad history                 # view local digest history
 tad web                     # start the local viewer on http://127.0.0.1:8080
 ```
@@ -95,6 +104,9 @@ The project is in its initial public release phase. It has automated tests and
 continuous integration, but it does not claim production-scale adoption,
 published package availability, or guaranteed summarization quality. Feedback,
 reproducible bug reports, and contributions are welcome.
+
+Application-readiness evidence and the adoption metrics that still need to be
+earned are tracked in [docs/CODEX_FOR_OSS_APPLICATION.md](docs/CODEX_FOR_OSS_APPLICATION.md).
 
 ## License
 

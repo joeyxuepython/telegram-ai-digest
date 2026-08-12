@@ -9,6 +9,7 @@ telegram:
   # Do not put real credentials in this file.
   api_id: 0
   api_hash: ""
+  session_path: "./data/session"       # session file is created with private permissions
 
 groups:
   # Chat IDs to monitor (find via @username_to_id_bot)
@@ -22,6 +23,7 @@ ai:
   api_key: ""
   base_url: ""
   max_tokens: 2000
+  max_input_chars: 30000               # split large chats into bounded API requests
   temperature: 0.3
 
 schedule:
@@ -43,3 +45,4 @@ storage:
 server:
   host: "127.0.0.1"
   port: 8080
+  allow_remote: false                  # no authentication is built into the viewer
